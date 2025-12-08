@@ -11,7 +11,9 @@
 
 set -euo pipefail
 
-MODULE_NAME="${MINICONDA_MODULE:-Miniconda3/23.5.2-0}"
+ANACONDA_MODULE="${ANACONDA_MODULE:-Anaconda3/2023.09}"
+CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/conda-tools}"
+MICROMAMBA_BIN="${MICROMAMBA_BIN:-micromamba}"
 ENV_PREFIX="${ENV_PREFIX:-$DATA/conda-envs/green-condor-env}"
 CUTOUT_PATH="${CUTOUT_PATH:-$DATA/green-condor/data/global_cutout_2019.nc}"
 OUTPUT_ZARR="${OUTPUT_ZARR:-$SCRATCH/green-condor/global_cf_2019.zarr}"
@@ -21,9 +23,10 @@ X_CHUNK="${X_CHUNK:-180}"
 OVERWRITE_FLAG="${OVERWRITE:-false}"
 
 module purge
-module load "${MODULE_NAME}"
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "${ENV_PREFIX}"
+module load "${ANACONDA_MODULE}"
+source activate "${CONDA_TOOLS_ENV}"
+eval "$("${MICROMAMBA_BIN}" shell hook --shell bash)"
+micromamba activate "${ENV_PREFIX}"
 
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 cd "${SLURM_SUBMIT_DIR}"
