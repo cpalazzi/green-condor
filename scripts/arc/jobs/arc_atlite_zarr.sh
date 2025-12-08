@@ -1,0 +1,45 @@
+#!/bin/bash
+#SBATCH --job-name=atlite-zarr
+#SBATCH --partition=compute
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=240G
+#SBATCH --time=72:00:00
+#SBATCH --output=slurm-%j.out
+## Uncomment for job arrays / latitudinal tiling
+## #SBATCH --array=0-3
+
+set -euo pipefail
+
+MODULE_NAME="${MINICONDA_MODULE:-Miniconda3/23.5.2-0}"
+ENV_PREFIX="${ENV_PREFIX:-$DATA/conda-envs/green-condor-env}"
+CUTOUT_PATH="${CUTOUT_PATH:-$DATA/green-condor/data/global_cutout_2019.nc}"
+OUTPUT_ZARR="${OUTPUT_ZARR:-$SCRATCH/green-condor/global_cf_2019.zarr}"
+TIME_CHUNK="${TIME_CHUNK:-168}"
+Y_CHUNK="${Y_CHUNK:-180}"
+X_CHUNK="${X_CHUNK:-180}"
+OVERWRITE_FLAG="${OVERWRITE:-false}"
+
+module purge
+module load "${MODULE_NAME}"
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "${ENV_PREFIX}"
+
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+cd "${SLURM_SUBMIT_DIR}"
+
+mkdir -p "$(dirname "${OUTPUT_ZARR}")"
+
+CMD=("python" "scripts/arc/run_atlite_to_zarr.py"
+  "--cutout" "${CUTOUT_PATH}"
+  "--output" "${OUTPUT_ZARR}"
+  "--time-chunk" "${TIME_CHUNK}"
+  "--target-chunk-y" "${Y_CHUNK}"
+  "--target-chunk-x" "${X_CHUNK}"
+)
+
+if [[ "${OVERWRITE_FLAG}" == "true" ]]; then
+  CMD+=("--overwrite")
+fi
+
+"${CMD[@]}"
