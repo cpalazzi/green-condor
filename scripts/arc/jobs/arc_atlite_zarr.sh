@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=atlite-zarr
-#SBATCH --partition=compute
+#SBATCH --partition=long
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=240G
