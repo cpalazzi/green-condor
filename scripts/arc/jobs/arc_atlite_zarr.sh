@@ -12,6 +12,7 @@
 set -euo pipefail
 
 : "${DATA:=/data/engs-df-green-ammonia/${USER}}"
+: "${SCRATCH:=/scratch/${USER}}"
 
 ANACONDA_MODULE="${ANACONDA_MODULE:-Anaconda3/2023.09}"
 CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/conda-tools}"
