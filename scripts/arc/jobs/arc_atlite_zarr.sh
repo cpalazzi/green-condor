@@ -20,7 +20,11 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
   echo "This script requires bash" >&2
   exit 2
 fi
-. /etc/profile.d/00-modulepath.sh 2>/dev/null || true
+if [[ -f /etc/profile.d/00-modulepath.sh ]]; then
+  set +u
+  source /etc/profile.d/00-modulepath.sh
+  set -u
+fi
 if ! command -v module >/dev/null 2>&1; then
   if [[ -f /etc/profile.d/modules.sh ]]; then
     source /etc/profile.d/modules.sh
