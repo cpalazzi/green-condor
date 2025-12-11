@@ -14,7 +14,7 @@ set -euo pipefail
 ANACONDA_MODULE="${ANACONDA_MODULE:-Anaconda3/2023.09}"
 CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/conda-tools}"
 MICROMAMBA_BIN="${MICROMAMBA_BIN:-micromamba}"
-ENV_PREFIX="${ENV_PREFIX:-$DATA/conda-envs/green-condor-env}"
+ENV_PREFIX="${ENV_PREFIX:-$DATA/envs/green-condor-env}"
 CUTOUT_PATH="${CUTOUT_PATH:-$DATA/green-condor/data/global_cutout_2019.nc}"
 OUTPUT_ZARR="${OUTPUT_ZARR:-$SCRATCH/green-condor/global_cf_2019.zarr}"
 TIME_CHUNK="${TIME_CHUNK:-168}"

@@ -6,7 +6,7 @@ ANACONDA_MODULE="${ANACONDA_MODULE:-Anaconda3/2023.09}"
 CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/conda-tools}"
 MICROMAMBA_BIN="${MICROMAMBA_BIN:-micromamba}"
 ENV_NAME="${ENV_NAME:-green-condor-env}"
-ENV_PREFIX="${ENV_PREFIX:-$DATA/conda-envs/${ENV_NAME}}"
+ENV_PREFIX="${ENV_PREFIX:-$DATA/envs/${ENV_NAME}}"
 ENV_FILE="$(dirname "$0")/environment_arc.yaml"
 
 module purge
