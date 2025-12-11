@@ -6,6 +6,8 @@
 #SBATCH --mem=240G
 #SBATCH --time=72:00:00
 #SBATCH --output=slurm-%j.out
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=carlo.palazzi@eng.ox.ac.uk
 ## Uncomment for job arrays / latitudinal tiling
 ## #SBATCH --array=0-3
 
@@ -13,6 +15,18 @@ set -euo pipefail
 
 : "${DATA:=/data/engs-df-green-ammonia/${USER}}"
 : "${SCRATCH:=/scratch/${USER}}"
+
+if [[ -z "${BASH_VERSION:-}" ]]; then
+  echo "This script requires bash" >&2
+  exit 2
+fi
+if ! command -v module >/dev/null 2>&1; then
+  if [[ -f /etc/profile.d/modules.sh ]]; then
+    source /etc/profile.d/modules.sh
+  elif [[ -f /usr/share/Modules/init/bash ]]; then
+    source /usr/share/Modules/init/bash
+  fi
+fi
 
 ANACONDA_MODULE="${ANACONDA_MODULE:-Anaconda3/2023.09}"
 CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/conda-tools}"
