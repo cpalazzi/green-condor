@@ -111,7 +111,19 @@ def assemble_dataset(cf_wind: xr.DataArray, cf_solar: xr.DataArray, mask: xr.Dat
     )
     ds["cf_solar"].attrs.update({"long_name": "Solar PV capacity factor", "panel": SOLAR_PANEL})
     ds["is_onshore"].attrs.update({"long_name": "1 if the grid cell centroid lies on land"})
-    ds.attrs.update({"tool": "green-condor", "source": Path(cf_wind.encoding.get("source", "cutout"))})
+
+    ds.attrs.update(
+        {
+            "tool": "green-condor",
+            "generation_note": (
+                "Capacity factors computed with atlite using "
+                f"{WIND_ONSHORE}/{WIND_OFFSHORE} turbines and {SOLAR_PANEL} panels."
+            ),
+        }
+    )
+    source_attr = cf_wind.encoding.get("source")
+    if source_attr:
+        ds.attrs["cutout_source"] = str(source_attr)
     return ds
 
 
