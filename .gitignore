@@ -13,6 +13,7 @@
 !*.yaml
 !*.sh
 !*.md
+!.gitkeep
 !images/*.png
 
 # Ignore Python cache and compiled files

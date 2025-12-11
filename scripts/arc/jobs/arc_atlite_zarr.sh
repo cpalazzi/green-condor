@@ -36,7 +36,8 @@ CONDA_TOOLS_ENV="${CONDA_TOOLS_ENV:-/data/engs-df-green-ammonia/${USER}/envs/con
 MICROMAMBA_BIN="${MICROMAMBA_BIN:-micromamba}"
 ENV_PREFIX="${ENV_PREFIX:-$DATA/envs/green-condor-env}"
 CUTOUT_PATH="${CUTOUT_PATH:-$DATA/green-condor/data/global_cutout_2019.nc}"
-OUTPUT_ZARR="${OUTPUT_ZARR:-$SCRATCH/green-condor/global_cf_2019.zarr}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-$DATA/green-condor/outputs}"
+OUTPUT_ZARR="${OUTPUT_ZARR:-$OUTPUT_ROOT/global_cf_2019.zarr}"
 TIME_CHUNK="${TIME_CHUNK:-168}"
 Y_CHUNK="${Y_CHUNK:-180}"
 X_CHUNK="${X_CHUNK:-180}"
@@ -52,6 +53,11 @@ export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 cd "${SLURM_SUBMIT_DIR}"
 
 mkdir -p "$(dirname "${OUTPUT_ZARR}")"
+
+echo "[$(date)] DATA=${DATA}"
+echo "[$(date)] SCRATCH=${SCRATCH:-unset}"
+echo "[$(date)] Writing Zarr to ${OUTPUT_ZARR}"
+echo "[$(date)] Cutout path ${CUTOUT_PATH}"
 
 CMD=("python" "scripts/arc/run_atlite_to_zarr.py"
   "--cutout" "${CUTOUT_PATH}"
