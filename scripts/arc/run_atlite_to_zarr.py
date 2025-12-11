@@ -59,12 +59,20 @@ def compute_capacity_factors(
     chunk_y: int,
     chunk_x: int,
 ) -> tuple[xr.DataArray, xr.DataArray]:
+    ones_layout = xr.DataArray(
+        1.0,
+        coords={"y": cutout.coords["y"], "x": cutout.coords["x"]},
+        dims=("y", "x"),
+    )
+
     cf_wind_on = cutout.wind(
+        layout=ones_layout,
         turbine=WIND_ONSHORE,
         capacity_factor=True,
         per_unit=True,
     )
     cf_wind_off = cutout.wind(
+        layout=ones_layout,
         turbine=WIND_OFFSHORE,
         capacity_factor=True,
         per_unit=True,
@@ -73,6 +81,7 @@ def compute_capacity_factors(
     cf_wind = cf_wind.chunk({"time": chunk_t, "y": chunk_y, "x": chunk_x})
 
     cf_solar = cutout.pv(
+        layout=ones_layout,
         panel=SOLAR_PANEL,
         orientation="latitude_optimal",
         tracking=None,
