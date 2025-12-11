@@ -52,14 +52,6 @@ def build_onshore_mask(cutout: atlite.Cutout, chunk_y: int, chunk_x: int) -> xr.
     ).chunk({"y": chunk_y, "x": chunk_x})
 
 
-def build_layout(cutout: atlite.Cutout, mask: xr.DataArray | None, chunk_y: int, chunk_x: int) -> xr.DataArray:
-    layout = cutout.data["height"].copy(deep=False).chunk({"y": chunk_y, "x": chunk_x})
-    layout[:] = 1.0
-    if mask is not None:
-        layout = layout.where(mask, 0.0)
-    return layout
-
-
 def compute_capacity_factors(
     cutout: atlite.Cutout,
     onshore_mask: xr.DataArray,
@@ -67,17 +59,12 @@ def compute_capacity_factors(
     chunk_y: int,
     chunk_x: int,
 ) -> tuple[xr.DataArray, xr.DataArray]:
-    wind_layout_on = build_layout(cutout, onshore_mask, chunk_y, chunk_x)
-    wind_layout_off = build_layout(cutout, ~onshore_mask, chunk_y, chunk_x)
-
     cf_wind_on = cutout.wind(
-        layout=wind_layout_on,
         turbine=WIND_ONSHORE,
         capacity_factor=True,
         per_unit=True,
     )
     cf_wind_off = cutout.wind(
-        layout=wind_layout_off,
         turbine=WIND_OFFSHORE,
         capacity_factor=True,
         per_unit=True,
@@ -86,13 +73,13 @@ def compute_capacity_factors(
     cf_wind = cf_wind.chunk({"time": chunk_t, "y": chunk_y, "x": chunk_x})
 
     cf_solar = cutout.pv(
-        layout=build_layout(cutout, onshore_mask, chunk_y, chunk_x),
         panel=SOLAR_PANEL,
         orientation="latitude_optimal",
         tracking=None,
         capacity_factor=True,
         per_unit=True,
     ).rename("cf_solar")
+    cf_solar = cf_solar.where(onshore_mask, 0.0)
     cf_solar = cf_solar.chunk({"time": chunk_t, "y": chunk_y, "x": chunk_x})
 
     return cf_wind, cf_solar
