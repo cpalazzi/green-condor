@@ -3,7 +3,7 @@
 #SBATCH --partition=long
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=240G
+#SBATCH --mem=360G
 #SBATCH --time=72:00:00
 #SBATCH --output=slurm-%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
