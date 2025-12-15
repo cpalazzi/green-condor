@@ -215,6 +215,7 @@ def main() -> None:
             raise FileExistsError(output_path)
 
     lat_slices = build_latitude_slices(cutout, args.lat_tiles, args.lat_rows_per_tile, args.lat_step_deg)
+    full_mask = build_onshore_mask(cutout, args.target_chunk_y, args.target_chunk_x)
     total_tiles = len(lat_slices)
     prepare_each_tile = args.prepare_per_tile and not args.skip_prepare
     for tile_idx, (y_start, y_stop) in enumerate(lat_slices, start=1):
@@ -232,7 +233,7 @@ def main() -> None:
                 flush=True,
             )
             tile_cutout.prepare(features=REQUIRED_FEATURES, monthly_requests=True)
-        mask = build_onshore_mask(tile_cutout, args.target_chunk_y, args.target_chunk_x)
+        mask = full_mask.sel(y=slice(y_start, y_stop))
         cf_wind, cf_solar = compute_capacity_factors(
             tile_cutout,
             mask,
