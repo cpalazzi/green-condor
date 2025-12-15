@@ -4,17 +4,22 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import sys
 from pathlib import Path
 
 import atlite
 import geopandas as gpd
 import geodatasets
+import numpy as np
 import xarray as xr
+import zarr
 from shapely.ops import unary_union
 
 DEFAULT_TIME_CHUNK = 168
 DEFAULT_SPATIAL_CHUNK = 180
+DEFAULT_LAT_TILES = 1
+DEFAULT_LAT_ROWS = 0
 
 WIND_ONSHORE = "Vestas_V112_3MW"
 WIND_OFFSHORE = "NREL_ReferenceTurbine_5MW_offshore"
@@ -31,6 +36,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-chunk-x", type=int, default=DEFAULT_SPATIAL_CHUNK, help="Chunk size along longitude.")
     parser.add_argument("--overwrite", action="store_true", help="Delete any existing Zarr store before writing.")
     parser.add_argument("--skip-prepare", action="store_true", help="Assume the cutout already contains all required features.")
+    parser.add_argument(
+        "--lat-tiles",
+        type=int,
+        default=DEFAULT_LAT_TILES,
+        help="Split the latitude dimension into this many sequential tiles to reduce peak memory.",
+    )
+    parser.add_argument(
+        "--lat-rows-per-tile",
+        type=int,
+        default=DEFAULT_LAT_ROWS,
+        help="Explicitly set the number of latitude rows per tile. Overrides --lat-tiles when > 0.",
+    )
+    parser.add_argument(
+        "--lat-step-deg",
+        type=float,
+        default=None,
+        help="If provided, derive tile height in degrees (e.g. 0.25 for single-row tiles).",
+    )
+    parser.add_argument(
+        "--prepare-per-tile",
+        action="store_true",
+        help="If set, run cutout.prepare separately for each latitude tile instead of once globally.",
+    )
     return parser.parse_args()
 
 
@@ -115,6 +143,47 @@ def assemble_dataset(cf_wind: xr.DataArray, cf_solar: xr.DataArray, mask: xr.Dat
     return ds
 
 
+def build_latitude_slices(
+    cutout: atlite.Cutout,
+    tile_count: int,
+    rows_per_tile: int,
+    step_deg: float | None,
+) -> list[tuple[float, float]]:
+    y_values = cutout.data.coords["y"].values
+    if y_values.size == 0:
+        return []
+
+    effective_rows = rows_per_tile if rows_per_tile > 0 else 0
+    if step_deg is not None:
+        if step_deg <= 0:
+            raise ValueError("lat-step-deg must be > 0")
+        if y_values.size == 1:
+            effective_rows = 1
+        else:
+            cell_height = abs(float(y_values[1] - y_values[0]))
+            if cell_height == 0:
+                raise ValueError("Cannot infer latitude resolution from cutout coordinates")
+            effective_rows = max(1, int(round(step_deg / cell_height)))
+
+    if effective_rows > 0:
+        slices: list[tuple[float, float]] = []
+        for start in range(0, y_values.size, effective_rows):
+            chunk = y_values[start : start + effective_rows]
+            slices.append((float(chunk[0]), float(chunk[-1])))
+        return slices
+
+    if tile_count < 1:
+        raise ValueError("lat-tiles must be >= 1")
+
+    chunks = np.array_split(y_values, tile_count)
+    slices = []
+    for chunk in chunks:
+        if chunk.size == 0:
+            continue
+        slices.append((float(chunk[0]), float(chunk[-1])))
+    return slices
+
+
 def main() -> None:
     args = parse_args()
 
@@ -123,18 +192,18 @@ def main() -> None:
         raise FileNotFoundError(cutout_path)
 
     cutout = atlite.Cutout(path=cutout_path)
-    if not args.skip_prepare:
+    if args.skip_prepare:
+        print("Skipping cutout.prepare per --skip-prepare flag.", file=sys.stderr, flush=True)
+    elif args.prepare_per_tile:
+        print(
+            "Will run cutout.prepare independently for each latitude tile.",
+            file=sys.stderr,
+            flush=True,
+        )
+    else:
+        print("Preparing entire cutout before tiling...", file=sys.stderr, flush=True)
         cutout.prepare(features=REQUIRED_FEATURES, monthly_requests=True)
-
-    mask = build_onshore_mask(cutout, args.target_chunk_y, args.target_chunk_x)
-    cf_wind, cf_solar = compute_capacity_factors(
-        cutout,
-        mask,
-        args.time_chunk,
-        args.target_chunk_y,
-        args.target_chunk_x,
-    )
-    dataset = assemble_dataset(cf_wind, cf_solar, mask)
+        print("Finished preparing entire cutout.", file=sys.stderr, flush=True)
 
     output_path = Path(args.output)
     if output_path.exists():
@@ -145,7 +214,44 @@ def main() -> None:
         else:
             raise FileExistsError(output_path)
 
-    dataset.to_zarr(output_path, mode="w", consolidated=True)
+    lat_slices = build_latitude_slices(cutout, args.lat_tiles, args.lat_rows_per_tile, args.lat_step_deg)
+    total_tiles = len(lat_slices)
+    prepare_each_tile = args.prepare_per_tile and not args.skip_prepare
+    for tile_idx, (y_start, y_stop) in enumerate(lat_slices, start=1):
+        print(
+            f"Processing latitude tile {tile_idx}/{total_tiles}: "
+            f"y in [{y_start:.2f}, {y_stop:.2f}]",
+            file=sys.stderr,
+            flush=True,
+        )
+        tile_cutout = cutout.sel(y=slice(y_start, y_stop))
+        if prepare_each_tile:
+            print(
+                f"Preparing features for tile {tile_idx}/{total_tiles}...",
+                file=sys.stderr,
+                flush=True,
+            )
+            tile_cutout.prepare(features=REQUIRED_FEATURES, monthly_requests=True)
+        mask = build_onshore_mask(tile_cutout, args.target_chunk_y, args.target_chunk_x)
+        cf_wind, cf_solar = compute_capacity_factors(
+            tile_cutout,
+            mask,
+            args.time_chunk,
+            args.target_chunk_y,
+            args.target_chunk_x,
+        )
+        dataset = assemble_dataset(cf_wind, cf_solar, mask)
+
+        mode = "w" if tile_idx == 1 else "a"
+        to_zarr_kwargs: dict[str, object] = {"mode": mode, "consolidated": False}
+        if mode == "a":
+            to_zarr_kwargs["append_dim"] = "y"
+        dataset.to_zarr(output_path, **to_zarr_kwargs)
+
+        del dataset, mask, cf_wind, cf_solar
+        gc.collect()
+
+    zarr.consolidate_metadata(str(output_path))
 
 
 if __name__ == "__main__":

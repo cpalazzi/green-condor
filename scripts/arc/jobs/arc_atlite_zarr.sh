@@ -41,7 +41,12 @@ OUTPUT_ZARR="${OUTPUT_ZARR:-$OUTPUT_ROOT/global_cf_2019.zarr}"
 TIME_CHUNK="${TIME_CHUNK:-168}"
 Y_CHUNK="${Y_CHUNK:-180}"
 X_CHUNK="${X_CHUNK:-180}"
+LAT_TILES="${LAT_TILES:-4}"
+LAT_ROWS_PER_TILE="${LAT_ROWS_PER_TILE:-}"
+LAT_STEP_DEG="${LAT_STEP_DEG:-}"
 OVERWRITE_FLAG="${OVERWRITE:-false}"
+SKIP_PREPARE="${SKIP_PREPARE:-true}"
+PREPARE_PER_TILE="${PREPARE_PER_TILE:-true}"
 
 module purge
 module load "${ANACONDA_MODULE}"
@@ -58,6 +63,11 @@ echo "[$(date)] DATA=${DATA}"
 echo "[$(date)] SCRATCH=${SCRATCH:-unset}"
 echo "[$(date)] Writing Zarr to ${OUTPUT_ZARR}"
 echo "[$(date)] Cutout path ${CUTOUT_PATH}"
+echo "[$(date)] Latitude tiles ${LAT_TILES}"
+echo "[$(date)] Latitude rows per tile ${LAT_ROWS_PER_TILE:-unset}"
+echo "[$(date)] Latitude step deg ${LAT_STEP_DEG:-unset}"
+echo "[$(date)] Skip cutout.prepare ${SKIP_PREPARE}"
+echo "[$(date)] Prepare per tile ${PREPARE_PER_TILE}"
 
 CMD=("python" "scripts/arc/run_atlite_to_zarr.py"
   "--cutout" "${CUTOUT_PATH}"
@@ -65,10 +75,27 @@ CMD=("python" "scripts/arc/run_atlite_to_zarr.py"
   "--time-chunk" "${TIME_CHUNK}"
   "--target-chunk-y" "${Y_CHUNK}"
   "--target-chunk-x" "${X_CHUNK}"
+  "--lat-tiles" "${LAT_TILES}"
 )
 
 if [[ "${OVERWRITE_FLAG}" == "true" ]]; then
   CMD+=("--overwrite")
+fi
+
+if [[ "${SKIP_PREPARE}" == "true" ]]; then
+  CMD+=("--skip-prepare")
+fi
+
+if [[ "${PREPARE_PER_TILE}" == "true" ]]; then
+  CMD+=("--prepare-per-tile")
+fi
+
+if [[ -n "${LAT_ROWS_PER_TILE}" ]]; then
+  CMD+=("--lat-rows-per-tile" "${LAT_ROWS_PER_TILE}")
+fi
+
+if [[ -n "${LAT_STEP_DEG}" ]]; then
+  CMD+=("--lat-step-deg" "${LAT_STEP_DEG}")
 fi
 
 "${CMD[@]}"
