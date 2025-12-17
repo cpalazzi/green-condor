@@ -44,9 +44,24 @@ X_CHUNK="${X_CHUNK:-180}"
 LAT_TILES="${LAT_TILES:-4}"
 LAT_ROWS_PER_TILE="${LAT_ROWS_PER_TILE:-}"
 LAT_STEP_DEG="${LAT_STEP_DEG:-}"
+LAT_TILE_START="${LAT_TILE_START:-}"
+LAT_TILE_COUNT="${LAT_TILE_COUNT:-}"
+OUTPUT_SUFFIX="${OUTPUT_SUFFIX:-}"
 OVERWRITE_FLAG="${OVERWRITE:-false}"
 SKIP_PREPARE="${SKIP_PREPARE:-true}"
 PREPARE_PER_TILE="${PREPARE_PER_TILE:-true}"
+
+if [[ -n "${LAT_TILE_COUNT}" ]]; then
+  TILE_START_NUM=$((10#${LAT_TILE_START:-0}))
+  TILE_END_NUM=$((TILE_START_NUM + 10#${LAT_TILE_COUNT} - 1))
+  if [[ -z "${OUTPUT_SUFFIX}" ]]; then
+    OUTPUT_SUFFIX="_tiles_${TILE_START_NUM}_${TILE_END_NUM}"
+  fi
+fi
+
+if [[ -n "${OUTPUT_SUFFIX}" ]]; then
+  OUTPUT_ZARR="${OUTPUT_ROOT}/global_cf_2019${OUTPUT_SUFFIX}.zarr"
+fi
 
 module purge
 module load "${ANACONDA_MODULE}"
@@ -66,6 +81,9 @@ echo "[$(date)] Cutout path ${CUTOUT_PATH}"
 echo "[$(date)] Latitude tiles ${LAT_TILES}"
 echo "[$(date)] Latitude rows per tile ${LAT_ROWS_PER_TILE:-unset}"
 echo "[$(date)] Latitude step deg ${LAT_STEP_DEG:-unset}"
+echo "[$(date)] Tile start index ${LAT_TILE_START:-unset}"
+echo "[$(date)] Tile count ${LAT_TILE_COUNT:-unset}"
+echo "[$(date)] Output suffix ${OUTPUT_SUFFIX:-unset}"
 echo "[$(date)] Skip cutout.prepare ${SKIP_PREPARE}"
 echo "[$(date)] Prepare per tile ${PREPARE_PER_TILE}"
 
@@ -96,6 +114,14 @@ fi
 
 if [[ -n "${LAT_STEP_DEG}" ]]; then
   CMD+=("--lat-step-deg" "${LAT_STEP_DEG}")
+fi
+
+if [[ -n "${LAT_TILE_START}" ]]; then
+  CMD+=("--tile-start-index" "${LAT_TILE_START}")
+fi
+
+if [[ -n "${LAT_TILE_COUNT}" ]]; then
+  CMD+=("--tile-count" "${LAT_TILE_COUNT}")
 fi
 
 "${CMD[@]}"

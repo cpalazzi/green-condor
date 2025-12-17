@@ -59,6 +59,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="If set, run cutout.prepare separately for each latitude tile instead of once globally.",
     )
+    parser.add_argument(
+        "--tile-start-index",
+        type=int,
+        default=0,
+        help="Zero-based index of the first latitude tile to process.",
+    )
+    parser.add_argument(
+        "--tile-count",
+        type=int,
+        default=0,
+        help="If >0, only process this many tiles starting from --tile-start-index.",
+    )
     return parser.parse_args()
 
 
@@ -215,12 +227,32 @@ def main() -> None:
             raise FileExistsError(output_path)
 
     lat_slices = build_latitude_slices(cutout, args.lat_tiles, args.lat_rows_per_tile, args.lat_step_deg)
-    full_mask = build_onshore_mask(cutout, args.target_chunk_y, args.target_chunk_x)
     total_tiles = len(lat_slices)
+    if total_tiles == 0:
+        print("No latitude tiles detected for the current cutout.", file=sys.stderr)
+        return
+
+    start_idx = args.tile_start_index
+    if start_idx < 0 or start_idx >= total_tiles:
+        raise ValueError(f"tile-start-index {start_idx} is outside [0, {total_tiles - 1}]")
+
+    lat_slices = lat_slices[start_idx:]
+    if args.tile_count > 0:
+        lat_slices = lat_slices[: args.tile_count]
+
+    if not lat_slices:
+        print("Tile selection resulted in zero latitude tiles to process.", file=sys.stderr)
+        return
+
+    selection_size = len(lat_slices)
+    global_offset = start_idx
+    full_mask = build_onshore_mask(cutout, args.target_chunk_y, args.target_chunk_x)
     prepare_each_tile = args.prepare_per_tile and not args.skip_prepare
-    for tile_idx, (y_start, y_stop) in enumerate(lat_slices, start=1):
+    for local_idx, (y_start, y_stop) in enumerate(lat_slices, start=1):
+        global_idx = global_offset + local_idx
         print(
-            f"Processing latitude tile {tile_idx}/{total_tiles}: "
+            f"Processing latitude tile {global_idx}/{total_tiles} "
+            f"(batch tile {local_idx}/{selection_size}): "
             f"y in [{y_start:.2f}, {y_stop:.2f}]",
             file=sys.stderr,
             flush=True,
@@ -228,7 +260,7 @@ def main() -> None:
         tile_cutout = cutout.sel(y=slice(y_start, y_stop))
         if prepare_each_tile:
             print(
-                f"Preparing features for tile {tile_idx}/{total_tiles}...",
+                f"Preparing features for batch tile {local_idx}/{selection_size}...",
                 file=sys.stderr,
                 flush=True,
             )
@@ -243,7 +275,7 @@ def main() -> None:
         )
         dataset = assemble_dataset(cf_wind, cf_solar, mask)
 
-        mode = "w" if tile_idx == 1 else "a"
+        mode = "w" if local_idx == 1 else "a"
         to_zarr_kwargs: dict[str, object] = {"mode": mode, "consolidated": False}
         if mode == "a":
             to_zarr_kwargs["append_dim"] = "y"
