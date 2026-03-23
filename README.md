@@ -1,33 +1,25 @@
-# green-condor workflows
+# green-condor
 
-This repository hosts lightweight notebooks for generating hourly renewable resource datasets that can feed Calliope or PyPSA-style power system models. The plan is to keep each stage isolated and reproducible:
+Fresh coordination workspace for a global energy modelling tool with a Phaser front end.
 
-1. **Power dataset (current notebook: `001_get_weather.ipynb`)** – prepare ERA5 cutouts with atlite, compute hourly capacity-factor (CF) cubes for wind (on/offshore) and solar at grid-cell resolution, and store them efficiently (Zarr/GeoParquet).
-2. **Land-use & siting constraints (future notebook)** – derive land/sea masks, slope, bathymetry, protected-area exclusions, and distance-to-shore layers. Output standardized GeoParquet files for later joins.
-3. **Model integration (future notebook)** – transform the CF dataset plus siting layers into Calliope or PyPSA inputs (per-region availability profiles, generator definitions, cost assumptions) to estimate LCOE/LCOH/LCOA.
+This repository is intentionally thin. The active source material now lives in symlinked sibling projects:
 
-## Power dataset workflow
+- `green-lory/`: weather fetching, ammonia model, and related notebooks.
+- `ecpa-paper/`: filtered symlink view of the paper repo and mathematical model, without its nested `pypsa-earth-green-auklet` link.
+- `pypsa-earth-green-auklet/`: PyPSA-Earth-based system model scaffolding.
 
-The power notebook now contains reusable utilities for:
+## Purpose of this repo now
 
-- Declaring technology specs (`TECH_SPECS`) for wind onshore/offshore and solar PV, including turbine/panel parameters and land masks.
-- Building 1 kW layouts per grid cell (`unit_layout`) and evaluating hourly CFs via `atlite.Cutout.wind` / `.pv`.
-- Concatenating multiple technology CFs into an `xarray.Dataset` with a `technology` dimension (`build_cf_dataset`).
-- Chunking and persisting the dataset to Zarr (`store_cf_zarr`) so downstream tools can stream time-slices without loading everything into memory.
-- Exporting GeoParquet/CSV summaries (`outputs/sample_region_cf.geo.parquet`, `sample_region_cf_summary.csv`) for the sample test region.
+`green-condor` should become the integration layer where we:
 
-### How to run
+1. distill reusable model kernels from the linked projects;
+2. define common data contracts for geography, weather, technologies, and scenarios;
+3. prototype an interactive global energy modelling interface in Phaser.
 
-1. Execute the cutout preparation cell (already configured for global 2019 ERA5 at 0.25°).
-2. Run the sample-region cells to sanity-check outputs and populate `outputs/sample_region_cf.*` artifacts.
-3. Set `run_full = True` in the utilities cell once you are ready for the global evaluation, optionally bringing up a Dask client sized to your machine.
-4. After completion, you will have `outputs/global_2019_cf.zarr` with hourly CF per technology and grid cell.
+The current default assumption is:
 
-### TODO
+- Python for the model core
+- Phaser for the interactive front end
+- browser-first deployment, with server-side preprocessing where needed
 
-- [ ] Add a notebook cell that aggregates CFs over arbitrary polygons (countries, EEZ, ISO regions) and writes region-level averages for Calliope/PyPSA inputs.
-- [ ] Encode compression (e.g., Zarr + Zstd) and metadata (attrs describing turbines/panels) before writing the global dataset.
-- [ ] Provide helper scripts to convert the Zarr CF dataset into per-technology Parquet/CSV tables consumable by Calliope (`timeseries_data_path`) and PyPSA (`generators_p_set`).
-- [ ] Mirror the Dask/Zarr pattern in the forthcoming land-use notebook so constraints align 1:1 with grid cells.
-
-Feel free to extend the README as future notebooks come online.
+See `DEVELOPMENT_NOTES.md` for the archive record, data strategy, and delivery plan.
