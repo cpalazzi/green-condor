@@ -1,42 +1,11 @@
-# Ignore everything by default
-*
-
-# Ensure .gitignore is tracked
-!.gitignore
-
-# Unignore directories so Git can process the files within them
-!*/
-
-# Allow tracking of specific file types
-!*.py
-!*.ipynb
-!*.yaml
-!*.sh
-!*.md
-!.gitkeep
-!images/*.png
-
-# Ignore Python cache and compiled files
+.DS_Store
+.vscode/
+.idea/
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Ignore contents of results directory
-results/
-
-# Ignore macOS .DS_Store files
-.DS_Store
-
-# Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Ignore other temporary or swap files
-*.swp
-*.swo
-*~
-
-# Optionally, ignore environment or build directories
-env/
-venv/
-build/
-dist/
+# Local linked workspaces; keep them out of version control here.
+/green-lory
+/pypsa-earth-green-auklet
+/ecpa-paper/
