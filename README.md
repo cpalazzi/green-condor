@@ -5,7 +5,7 @@ Fresh coordination workspace for a global energy modelling tool with a Phaser fr
 This repository is intentionally thin. The active source material now lives in symlinked sibling projects:
 
 - `green-lory/`: weather fetching, ammonia model, and related notebooks.
-- `ecpa-paper/`: filtered symlink view of the paper repo and mathematical model, without its nested `pypsa-earth-green-auklet` link.
+- `green-caribou-paper/`: filtered symlink view of the paper repo and mathematical model, without its nested `pypsa-earth-green-auklet` link.
 - `pypsa-earth-green-auklet/`: PyPSA-Earth-based system model scaffolding.
 
 ## Purpose of this repo now

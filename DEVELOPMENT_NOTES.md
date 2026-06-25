@@ -3,7 +3,7 @@
 ## Starting point
 
 - `green-lory` holds the strongest current implementation for weather ingestion and the ammonia workflow.
-- `ecpa-paper` holds the stronger mathematical framing and analysis.
+- `green-caribou-paper` holds the stronger mathematical framing and analysis.
 - `pypsa-earth-green-auklet` holds broader power-system structure and data conventions.
 - `green-condor` now serves as the integration workspace where those threads are unified into a single interactive tool.
 
@@ -46,7 +46,7 @@ An interactive global energy modelling tool where a user can:
 
 - Global weather and derived resource layers from `green-lory`
 - Static geographic layers from `pypsa-earth-green-auklet`
-- Economic and technology assumptions distilled from `ecpa-paper` and other model inputs
+- Economic and technology assumptions distilled from `green-caribou-paper` and other model inputs
 - Cached, pre-derived frontend tiles and scenario payloads produced from the Python backend
 
 ### 2. Model kernel layer

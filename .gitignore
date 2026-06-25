@@ -8,4 +8,4 @@ __pycache__/
 # Local linked workspaces; keep them out of version control here.
 /green-lory
 /pypsa-earth-green-auklet
-/ecpa-paper/
+/green-caribou-paper/
